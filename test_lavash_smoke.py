@@ -27,26 +27,43 @@ def driver():
 
 def ensure_address_selected(driver):
     """
-    Если всплыла большая карта с выбором адреса — вводим 'Мира 10'
-    и нажимаем кнопку 'Выбрать'. Если модалки нет — тихо выходим.
+    Если всплыла большая карта с выбором адреса — вводим 'Мира, 10',
+    выбираем первый вариант из подсказок и нажимаем 'Выбрать'.
+    Если модалки нет — тихо выходим.
     """
     wait = WebDriverWait(driver, 20)
+    wait_short = WebDriverWait(driver, 3)
 
+    # 1. Пытаемся найти инпут с адресом (id='suggest')
     try:
-        # Пытаемся найти инпут с адресом (id='suggest')
-        addr_input = WebDriverWait(driver, 3).until(
-            EC.presence_of_element_located((By.ID, "suggest"))
+        addr_input = wait_short.until(
+            EC.visibility_of_element_located((By.ID, "suggest"))
         )
     except TimeoutException:
         # Модалки нет
         return
 
-    # Вводим адрес и выбираем первый вариант через Enter
+    # 2. Вводим адрес
+    addr_input.click()
     addr_input.clear()
-    addr_input.send_keys("Мира 10")
-    addr_input.send_keys(Keys.ENTER)
+    addr_input.send_keys("Мира, 10")
 
-    # Ждём, пока станет активна кнопка "Выбрать"
+    # 3. Ждём подсказки и кликаем по первой
+    try:
+        first_suggest = wait.until(
+            EC.element_to_be_clickable(
+                (
+                    By.CSS_SELECTOR,
+                    ".suggest-addresses li, .suggest-addresses__item"
+                )
+            )
+        )
+        first_suggest.click()
+    except TimeoutException:
+        # Если подсказки не появились – идём дальше как есть
+        pass
+
+    # 4. Ждём, пока станет активна кнопка "Выбрать", и жмём её
     try:
         choose_btn = wait.until(
             EC.element_to_be_clickable(
@@ -69,7 +86,7 @@ def ensure_address_selected(driver):
         except TimeoutException:
             pass
 
-    # Ждём исчезновения модалки с картой
+    # 5. Ждём исчезновения модалки с картой (как у тебя было)
     try:
         wait.until(
             EC.invisibility_of_element_located(
